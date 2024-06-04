@@ -24,8 +24,7 @@
    add arch-specific extension (such as lock-elision).  The struct have
    a size of 32 bytes on LP32 and 40 bytes on LP64 architectures.  */
 
-struct __pthread_mutex_s
-{
+struct __pthread_mutex_s {
   int __lock __LOCK_ALIGNMENT;
   unsigned int __count;
   int __owner;
@@ -62,22 +61,21 @@ struct __pthread_mutex_s
 #if __WORDSIZE == 64
   int __spins;
   __pthread_list_t __list;
-# define __PTHREAD_MUTEX_HAVE_PREV      1
+#define __PTHREAD_MUTEX_HAVE_PREV 1
 #else
-  __extension__ union
-  {
+  __extension__ union {
     int __spins;
     __pthread_slist_t __list;
   };
-# define __PTHREAD_MUTEX_HAVE_PREV      0
+#define __PTHREAD_MUTEX_HAVE_PREV 0
 #endif
 };
 
 #if __PTHREAD_MUTEX_HAVE_PREV == 1
-# define __PTHREAD_MUTEX_INITIALIZER(__kind) \
+#define __PTHREAD_MUTEX_INITIALIZER(__kind) \
   0, 0, 0, 0, __kind, 0, { 0, 0 }
 #else
-# define __PTHREAD_MUTEX_INITIALIZER(__kind) \
+#define __PTHREAD_MUTEX_INITIALIZER(__kind) \
   0, 0, 0, __kind, 0, { 0 }
 #endif
 
