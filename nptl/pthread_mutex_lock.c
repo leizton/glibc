@@ -38,26 +38,19 @@
 
 /* Some of the following definitions differ when pthread_mutex_cond_lock.c
    includes this file.  */
-#ifndef LLL_MUTEX_LOCK
-#define LLL_MUTEX_LOCK(mutex) \
-  lll_lock((mutex)->__data.__lock, PTHREAD_MUTEX_PSHARED(mutex))
-#define LLL_MUTEX_TRYLOCK(mutex) \
-  lll_trylock((mutex)->__data.__lock)
+#define LLL_MUTEX_LOCK(mutex) lll_lock((mutex)->__data.__lock, PTHREAD_MUTEX_PSHARED(mutex))
+#define LLL_MUTEX_TRYLOCK(mutex) lll_trylock((mutex)->__data.__lock)
+
 #define LLL_ROBUST_MUTEX_LOCK_MODIFIER 0
-#define LLL_MUTEX_LOCK_ELISION(mutex)                                 \
-  lll_lock_elision((mutex)->__data.__lock, (mutex)->__data.__elision, \
-                   PTHREAD_MUTEX_PSHARED(mutex))
-#define LLL_MUTEX_TRYLOCK_ELISION(mutex)                                 \
-  lll_trylock_elision((mutex)->__data.__lock, (mutex)->__data.__elision, \
-                      PTHREAD_MUTEX_PSHARED(mutex))
-#endif
+
+#define LLL_MUTEX_LOCK_ELISION(mutex) lll_lock_elision((mutex)->__data.__lock, (mutex)->__data.__elision, PTHREAD_MUTEX_PSHARED(mutex))
+#define LLL_MUTEX_TRYLOCK_ELISION(mutex) lll_trylock_elision((mutex)->__data.__lock, (mutex)->__data.__elision, PTHREAD_MUTEX_PSHARED(mutex))
 
 #ifndef FORCE_ELISION
 #define FORCE_ELISION(m, s)
 #endif
 
-static int __pthread_mutex_lock_full(pthread_mutex_t* mutex)
-    __attribute_noinline__;
+static int __pthread_mutex_lock_full(pthread_mutex_t* mutex) __attribute_noinline__;
 
 int __pthread_mutex_lock(pthread_mutex_t* mutex) {
   /* See concurrency notes regarding mutex type which is loaded from __kind
@@ -66,10 +59,10 @@ int __pthread_mutex_lock(pthread_mutex_t* mutex) {
 
   LIBC_PROBE(mutex_entry, 1, mutex);
 
-  if (__builtin_expect(type & ~(PTHREAD_MUTEX_KIND_MASK_NP | PTHREAD_MUTEX_ELISION_FLAGS_NP), 0))
+  if (type & ~(PTHREAD_MUTEX_KIND_MASK_NP | PTHREAD_MUTEX_ELISION_FLAGS_NP))
     return __pthread_mutex_lock_full(mutex);
 
-  if (__glibc_likely(type == PTHREAD_MUTEX_TIMED_NP)) {
+  if (type == PTHREAD_MUTEX_TIMED_NP) {
     FORCE_ELISION(mutex, goto elision);
   simple:
     /* Normal mutex.  */
@@ -82,14 +75,14 @@ int __pthread_mutex_lock(pthread_mutex_t* mutex) {
     __attribute__((unused))
     /* This case can never happen on a system without elision,
        as the mutex type initialization functions will not
- allow to set the elision flags.  */
+       allow to set the elision flags.  */
     /* Don't record owner or users for elision case.  This is a
        tail call.  */
     return LLL_MUTEX_LOCK_ELISION(mutex);
   }
 #endif
-  else if (__builtin_expect(PTHREAD_MUTEX_TYPE(mutex) == PTHREAD_MUTEX_RECURSIVE_NP, 1)) {
-    /* Recursive mutex.  */
+  else if (PTHREAD_MUTEX_TYPE(mutex) == PTHREAD_MUTEX_RECURSIVE_NP) {
+    // 可重入锁
     pid_t id = THREAD_GETMEM(THREAD_SELF, tid);
 
     /* Check whether we already hold the mutex.  */

@@ -17,39 +17,22 @@
    License along with the GNU C Library; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include <sysdep.h>
-#include <lowlevellock.h>
 #include <atomic.h>
+#include <lowlevellock.h>
 #include <stap-probe.h>
+#include <sysdep.h>
 
-void
-__lll_lock_wait_private (int *futex)
-{
-  if (atomic_load_relaxed (futex) == 2)
+void __lll_lock_wait(int* futex, int private) {
+  if (atomic_load_relaxed(futex) == 2)
     goto futex;
 
-  while (atomic_exchange_acquire (futex, 2) != 0)
-    {
-    futex:
-      LIBC_PROBE (lll_lock_wait_private, 1, futex);
-      lll_futex_wait (futex, 2, LLL_PRIVATE); /* Wait if *futex == 2.  */
-    }
+  while (atomic_exchange_acquire(futex, 2) != 0) {
+  futex:
+    // LIBC_PROBE(lll_lock_wait, 1, futex);
+    lll_futex_wait(futex, 2, private); /* Wait if *futex == 2.  */
+  }
 }
 
-
-/* This function doesn't get included in libc.  */
-#if IS_IN (libpthread)
-void
-__lll_lock_wait (int *futex, int private)
-{
-  if (atomic_load_relaxed (futex) == 2)
-    goto futex;
-
-  while (atomic_exchange_acquire (futex, 2) != 0)
-    {
-    futex:
-      LIBC_PROBE (lll_lock_wait, 1, futex);
-      lll_futex_wait (futex, 2, private); /* Wait if *futex == 2.  */
-    }
+void __lll_lock_wait_private(int* futex) {
+  __lll_lock_wait(futex, LLL_PRIVATE);
 }
-#endif
