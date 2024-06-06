@@ -29,7 +29,7 @@
    corresponding to that specified by the given thread ID."  */
 
 /* Thread ID lookup table.  */
-struct __pthread **__pthread_threads;
+struct __pthread** __pthread_threads;
 
 /* The size of the thread ID lookup table.  */
 int __pthread_max_threads;
@@ -42,32 +42,31 @@ int __pthread_num_threads;
 pthread_rwlock_t __pthread_threads_lock;
 
 /* List of thread structures corresponding to free thread IDs.  */
-struct __pthread *__pthread_free_threads;
+struct __pthread* __pthread_free_threads;
 pthread_mutex_t __pthread_free_threads_lock;
 
 static inline error_t
-initialize_pthread (struct __pthread *new)
-{
+initialize_pthread(struct __pthread* new) {
   error_t err;
 
-  err = __pthread_init_specific (new);
+  err = __pthread_init_specific(new);
   if (err)
     return err;
 
   new->nr_refs = 1;
-  new->cancel_lock = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+  new->cancel_lock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
   new->cancel_hook = NULL;
   new->cancel_hook_arg = NULL;
   new->cancel_state = PTHREAD_CANCEL_ENABLE;
   new->cancel_type = PTHREAD_CANCEL_DEFERRED;
   new->cancel_pending = 0;
 
-  new->state_lock = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
-  new->state_cond = (pthread_cond_t) PTHREAD_COND_INITIALIZER;
+  new->state_lock = (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER;
+  new->state_cond = (pthread_cond_t)PTHREAD_COND_INITIALIZER;
 
   new->cancelation_handlers = 0;
 
-  memset (&new->res_state, '\0', sizeof (new->res_state));
+  memset(&new->res_state, '\0', sizeof(new->res_state));
 
   new->tcb = NULL;
 
@@ -77,86 +76,76 @@ initialize_pthread (struct __pthread *new)
   return 0;
 }
 
-
 /* Allocate a new thread structure and its pthread thread ID (but not
    a kernel thread).  */
-int
-__pthread_alloc (struct __pthread **pthread)
-{
+int __pthread_alloc(struct __pthread** pthread) {
   error_t err;
 
-  struct __pthread *new;
-  struct __pthread **threads;
-  struct __pthread **old_threads;
+  struct __pthread* new;
+  struct __pthread** threads;
+  struct __pthread** old_threads;
   int max_threads;
   int new_max_threads;
 
-  __pthread_mutex_lock (&__pthread_free_threads_lock);
-  for (new = __pthread_free_threads; new; new = new->next)
-    {
-      /* There is no need to take NEW->STATE_LOCK: if NEW is on this
-         list, then it is protected by __PTHREAD_FREE_THREADS_LOCK
-         except in __pthread_dealloc where after it is added to the
-         list (with the lock held), it drops the lock and then sets
-         NEW->STATE and immediately stops using NEW.  */
-      if (new->state == PTHREAD_TERMINATED)
-	{
-	  __pthread_dequeue (new);
-	  break;
-	}
+  __pthread_mutex_lock(&__pthread_free_threads_lock);
+  for (new = __pthread_free_threads; new; new = new->next) {
+    /* There is no need to take NEW->STATE_LOCK: if NEW is on this
+       list, then it is protected by __PTHREAD_FREE_THREADS_LOCK
+       except in __pthread_dealloc where after it is added to the
+       list (with the lock held), it drops the lock and then sets
+       NEW->STATE and immediately stops using NEW.  */
+    if (new->state == PTHREAD_TERMINATED) {
+      __pthread_dequeue(new);
+      break;
     }
-  __pthread_mutex_unlock (&__pthread_free_threads_lock);
+  }
+  __pthread_mutex_unlock(&__pthread_free_threads_lock);
 
-  if (new)
-    {
-      if (new->tcb)
-	{
-	  /* Drop old values */
-	  _dl_deallocate_tls (new->tcb, 1);
-	}
-
-      err = initialize_pthread (new);
-      if (!err)
-	*pthread = new;
-      return err;
+  if (new) {
+    if (new->tcb) {
+      /* Drop old values */
+      _dl_deallocate_tls(new->tcb, 1);
     }
+
+    err = initialize_pthread(new);
+    if (!err)
+      *pthread = new;
+    return err;
+  }
 
   /* Allocate a new thread structure.  */
-  new = malloc (sizeof (struct __pthread));
+  new = malloc(sizeof(struct __pthread));
   if (new == NULL)
     return ENOMEM;
 
-  err = initialize_pthread (new);
-  if (err)
-    {
-      free (new);
-      return err;
-    }
+  err = initialize_pthread(new);
+  if (err) {
+    free(new);
+    return err;
+  }
 
 retry:
-  __pthread_rwlock_wrlock (&__pthread_threads_lock);
+  __pthread_rwlock_wrlock(&__pthread_threads_lock);
 
-  if (__pthread_num_threads < __pthread_max_threads)
-    {
-      /* We have a free slot.  Use the slot number plus one as the
-         thread ID for the new thread.  */
-      new->thread = 1 + __pthread_num_threads++;
-      __pthread_threads[new->thread - 1] = NULL;
+  if (__pthread_num_threads < __pthread_max_threads) {
+    /* We have a free slot.  Use the slot number plus one as the
+       thread ID for the new thread.  */
+    new->thread = 1 + __pthread_num_threads++;
+    __pthread_threads[new->thread - 1] = NULL;
 
-      __pthread_rwlock_unlock (&__pthread_threads_lock);
+    __pthread_rwlock_unlock(&__pthread_threads_lock);
 
-      *pthread = new;
-      return 0;
-    }
+    *pthread = new;
+    return 0;
+  }
 #ifdef PTHREAD_THREADS_MAX
-  else if (__pthread_num_threads >= PTHREAD_THREADS_MAX)
-    {
-      /* We have reached the limit on the number of threads per process.  */
-      __pthread_rwlock_unlock (&__pthread_threads_lock);
+  else if (__pthread_num_threads >= PTHREAD_THREADS_MAX) {
+    /* We have reached the limit on the number of threads per process.  */
+    __pthread_rwlock_unlock(&__pthread_threads_lock);
 
-      free (new);
-      return EAGAIN;
-    }
+    free(new);
+    return EAGAIN;
+  }
 #endif
 
   /* We are going to enlarge the threads table.  Save its current
@@ -164,34 +153,31 @@ retry:
      memory allocation, since that's a potentially blocking operation.  */
   max_threads = __pthread_max_threads;
 
-  __pthread_rwlock_unlock (&__pthread_threads_lock);
+  __pthread_rwlock_unlock(&__pthread_threads_lock);
 
   /* Allocate a new lookup table that's twice as large.  */
-  new_max_threads
-      = max_threads > 0 ? max_threads * 2 : _POSIX_THREAD_THREADS_MAX;
-  threads = malloc (new_max_threads * sizeof (struct __pthread *));
-  if (threads == NULL)
-    {
-      free (new);
-      return ENOMEM;
-    }
+  new_max_threads = max_threads > 0 ? max_threads * 2 : _POSIX_THREAD_THREADS_MAX;
+  threads = malloc(new_max_threads * sizeof(struct __pthread*));
+  if (threads == NULL) {
+    free(new);
+    return ENOMEM;
+  }
 
-  __pthread_rwlock_wrlock (&__pthread_threads_lock);
+  __pthread_rwlock_wrlock(&__pthread_threads_lock);
 
   /* Check if nobody else has already enlarged the table.  */
-  if (max_threads != __pthread_max_threads)
-    {
-      /* Yep, they did.  */
-      __pthread_rwlock_unlock (&__pthread_threads_lock);
+  if (max_threads != __pthread_max_threads) {
+    /* Yep, they did.  */
+    __pthread_rwlock_unlock(&__pthread_threads_lock);
 
-      /* Free the newly allocated table and try again to allocate a slot.  */
-      free (threads);
-      goto retry;
-    }
+    /* Free the newly allocated table and try again to allocate a slot.  */
+    free(threads);
+    goto retry;
+  }
 
   /* Copy over the contents of the old table.  */
-  memcpy (threads, __pthread_threads,
-	  __pthread_max_threads * sizeof (struct __pthread *));
+  memcpy(threads, __pthread_threads,
+         __pthread_max_threads * sizeof(struct __pthread*));
 
   /* Save the location of the old table.  We want to deallocate its
      storage after we released the lock.  */
@@ -205,9 +191,9 @@ retry:
   new->thread = 1 + __pthread_num_threads++;
   __pthread_threads[new->thread - 1] = NULL;
 
-  __pthread_rwlock_unlock (&__pthread_threads_lock);
+  __pthread_rwlock_unlock(&__pthread_threads_lock);
 
-  free (old_threads);
+  free(old_threads);
 
   *pthread = new;
   return 0;

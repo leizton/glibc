@@ -57,8 +57,6 @@ int __pthread_mutex_lock(pthread_mutex_t* mutex) {
      in struct __pthread_mutex_s in sysdeps/nptl/bits/thread-shared-types.h.  */
   unsigned int type = PTHREAD_MUTEX_TYPE_ELISION(mutex);
 
-  LIBC_PROBE(mutex_entry, 1, mutex);
-
   if (type & ~(PTHREAD_MUTEX_KIND_MASK_NP | PTHREAD_MUTEX_ELISION_FLAGS_NP))
     return __pthread_mutex_lock_full(mutex);
 

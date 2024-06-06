@@ -21,8 +21,8 @@
 
 #ifdef USE_STAP_PROBE
 
-# include <stap-probe-machine.h>
-# include <sys/sdt.h>
+#include <stap-probe-machine.h>
+#include <sys/sdt.h>
 
 /* Our code uses one macro LIBC_PROBE (name, n, arg1, ..., argn).
 
@@ -41,38 +41,48 @@
    architecture specific and can be found in the gdb and SystemTap
    source code.  */
 
-# define LIBC_PROBE(name, n, ...)	\
-  LIBC_PROBE_1 (MODULE_NAME, name, n, ## __VA_ARGS__)
+#define LIBC_PROBE(name, n, ...) \
+  LIBC_PROBE_1(MODULE_NAME, name, n, ##__VA_ARGS__)
 
-# define LIBC_PROBE_1(lib, name, n, ...) \
-  STAP_PROBE##n (lib, name, ## __VA_ARGS__)
+#define LIBC_PROBE_1(lib, name, n, ...) \
+  STAP_PROBE##n(lib, name, ##__VA_ARGS__)
 
-# define STAP_PROBE0		STAP_PROBE
+#define STAP_PROBE0 STAP_PROBE
 
-# define LIBC_PROBE_ASM(name, template) \
-  STAP_PROBE_ASM (MODULE_NAME, name, template)
+#define LIBC_PROBE_ASM(name, template) \
+  STAP_PROBE_ASM(MODULE_NAME, name, template)
 
-# define LIBC_PROBE_ASM_OPERANDS STAP_PROBE_ASM_OPERANDS
+#define LIBC_PROBE_ASM_OPERANDS STAP_PROBE_ASM_OPERANDS
 
-#else  /* Not USE_STAP_PROBE.  */
+#else /* Not USE_STAP_PROBE.  */
 
-# ifndef __ASSEMBLER__
+#ifndef __ASSEMBLER__
 /* Evaluate all the arguments and verify that N matches their number.  */
-#  define LIBC_PROBE(name, n, ...) STAP_PROBE##n (__VA_ARGS__)
+#define LIBC_PROBE(name, n, ...) STAP_PROBE##n(__VA_ARGS__)
 
-#  define STAP_PROBE0()				do {} while (0)
-#  define STAP_PROBE1(a1)			do {} while (0)
-#  define STAP_PROBE2(a1, a2)			do {} while (0)
-#  define STAP_PROBE3(a1, a2, a3)		do {} while (0)
-#  define STAP_PROBE4(a1, a2, a3, a4)		do {} while (0)
+#define STAP_PROBE0() \
+  do {                \
+  } while (0)
+#define STAP_PROBE1(a1) \
+  do {                  \
+  } while (0)
+#define STAP_PROBE2(a1, a2) \
+  do {                      \
+  } while (0)
+#define STAP_PROBE3(a1, a2, a3) \
+  do {                          \
+  } while (0)
+#define STAP_PROBE4(a1, a2, a3, a4) \
+  do {                              \
+  } while (0)
 
-# else
-#  define LIBC_PROBE(name, n, ...)		/* Nothing.  */
-# endif
+#else
+#define LIBC_PROBE(name, n, ...) /* Nothing.  */
+#endif
 
-# define LIBC_PROBE_ASM(name, template)		/* Nothing.  */
-# define LIBC_PROBE_ASM_OPERANDS(n, ...)	/* Nothing.  */
+#define LIBC_PROBE_ASM(name, template)  /* Nothing.  */
+#define LIBC_PROBE_ASM_OPERANDS(n, ...) /* Nothing.  */
 
-#endif	/* USE_STAP_PROBE.  */
+#endif /* USE_STAP_PROBE.  */
 
-#endif	/* stap-probe.h */
+#endif /* stap-probe.h */
