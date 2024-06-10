@@ -46,8 +46,6 @@ int __pthread_mutex_unlock_usercnt(pthread_mutex_t* mutex, int decr) {
     /* Unlock.  */
     lll_unlock(mutex->__data.__lock, PTHREAD_MUTEX_PSHARED(mutex));
 
-    LIBC_PROBE(mutex_release, 1, mutex);
-
     return 0;
   } else if (type == PTHREAD_MUTEX_TIMED_ELISION_NP) {
     /* Don't reset the owner/users fields for elision.  */

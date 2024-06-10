@@ -127,23 +127,15 @@ libc_hidden_proto(__lll_lock_wake)
    acquires the lock and when there will be no further lock acquisitions;
    thus, we must not access the lock after releasing it, or those accesses
    could be concurrent with mutex destruction or reuse of the memory.  */
-#define __lll_unlock(futex, private)                                 \
-  ((void)({                                                          \
-    int* __futex = (futex);                                          \
-    int __private = (private);                                       \
-    int __oldval = atomic_exchange_rel(__futex, 0);                  \
-    if (__glibc_unlikely(__oldval > 1)) {                            \
-      if (__builtin_constant_p(private) && (private) == LLL_PRIVATE) \
-        __lll_lock_wake_private(__futex);                            \
-      else                                                           \
-        __lll_lock_wake(__futex, __private);                         \
-    }                                                                \
-  }))
-#define lll_unlock(futex, private) \
-  __lll_unlock(&(futex), private)
+#define lll_unlock(futex, private)                \
+  {                                               \
+    int* _futex = &(futex);                       \
+    int old_val = atomic_exchange_rel(_futex, 0); \
+    if (old_val > 1)                              \
+      __lll_lock_wake(_futex, (private));         \
+  }
 
-#define lll_islocked(futex) \
-  ((futex) != LLL_LOCK_INITIALIZER)
+#define lll_islocked(futex) ((futex) != LLL_LOCK_INITIALIZER)
 
 /* Our internal lock implementation is identical to the binary-compatible
    mutex implementation. */
